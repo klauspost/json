@@ -13,11 +13,18 @@ import (
 // Compact appends to dst the JSON-encoded src with
 // insignificant space characters elided.
 func Compact(dst *bytes.Buffer, src []byte) error {
+	w := bufio.NewWriter(dst)
+	defer w.Flush()
+	return compact(w, src, false)
+}
+
+// CompactBuffer appends to dst the JSON-encoded src with
+// insignificant space characters elided.
+func CompactBuffer(dst *bufio.Writer, src []byte) error {
 	return compact(dst, src, false)
 }
 
-func compact(dst *bytes.Buffer, src []byte, escape bool) error {
-	origLen := dst.Len()
+func compact(dst *bufio.Writer, src []byte, escape bool) error {
 	var scan scanner
 	scan.reset()
 	start := 0
@@ -52,7 +59,6 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 		}
 	}
 	if scan.eof() == scanError {
-		dst.Truncate(origLen)
 		return scan.err
 	}
 	if start < len(src) {

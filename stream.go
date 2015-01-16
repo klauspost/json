@@ -156,7 +156,7 @@ func (enc *Encoder) Encode(v interface{}) error {
 	if enc.err != nil {
 		return enc.err
 	}
-	e := newEncodeState()
+	e := newEncodeState(enc.w)
 	err := e.marshal(v)
 	if err != nil {
 		return err
@@ -168,11 +168,8 @@ func (enc *Encoder) Encode(v interface{}) error {
 	// is required if the encoded value was a number,
 	// so that the reader knows there aren't more
 	// digits coming.
-	e.WriteByte('\n')
+	enc.w.Write([]byte{'\n'})
 
-	if _, err = enc.w.Write(e.Bytes()); err != nil {
-		enc.err = err
-	}
 	encodeStatePool.Put(e)
 	return err
 }
@@ -186,8 +183,29 @@ func (enc *Encoder) EncodeIndent(v interface{}, prefix, indent string) error {
 	if enc.err != nil {
 		return enc.err
 	}
-	e := newEncodeState()
+	enc.w.Write([]byte(prefix))
+	r, w := io.Pipe()
+	ec := make(chan error, 1)
+	go func() {
+		err := IndentStream(enc.w, r, prefix, indent)
+		if err != nil {
+			r.CloseWithError(err)
+		} else {
+			r.Close()
+		}
+		ec <- err
+		close(ec)
+	}()
+	e := newEncodeState(w)
 	err := e.marshal(v)
+	if err != nil {
+		w.CloseWithError(err)
+		return err
+	}
+
+	w.Close()
+	// Wait for the indenter to return
+	err = <-ec
 	if err != nil {
 		return err
 	}
@@ -198,10 +216,7 @@ func (enc *Encoder) EncodeIndent(v interface{}, prefix, indent string) error {
 	// is required if the encoded value was a number,
 	// so that the reader knows there aren't more
 	// digits coming.
-	e.WriteByte('\n')
-	if err = IndentStream(enc.w, e, prefix, indent); err != nil {
-		enc.err = err
-	}
+	enc.w.Write([]byte{'\n'})
 	encodeStatePool.Put(e)
 	return err
 }
