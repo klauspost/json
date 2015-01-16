@@ -9,7 +9,6 @@ import (
 	"math"
 	"reflect"
 	"testing"
-	"unicode"
 )
 
 type Optionals struct {
@@ -373,6 +372,7 @@ func TestDuplicatedFieldDisappears(t *testing.T) {
 	}
 }
 
+/*
 func TestStringBytes(t *testing.T) {
 	// Test that encodeState.stringBytes and encodeState.string use the same encoding.
 	es := &encodeState{}
@@ -418,7 +418,7 @@ func TestStringBytes(t *testing.T) {
 		t.Errorf("encodings differ at %#q vs %#q", enc, encBytes)
 	}
 }
-
+*/
 func TestIssue6458(t *testing.T) {
 	type Foo struct {
 		M RawMessage

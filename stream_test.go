@@ -36,6 +36,24 @@ false
 3.14
 `
 
+// Indentation is set to prefix 1 space and 3 per level.
+var streamEncodedIndent = ` 0.1
+ "hello"
+ null
+ true
+ false
+ [
+    "a",
+    "b",
+    "c"
+ ]
+ {
+    "ß": "long s",
+    "K": "Kelvin"
+ }
+ 3.14
+`
+
 func TestEncoder(t *testing.T) {
 	for i := 0; i <= len(streamTest); i++ {
 		var buf bytes.Buffer
@@ -50,6 +68,20 @@ func TestEncoder(t *testing.T) {
 			diff(t, []byte(have), []byte(want))
 			break
 		}
+	}
+}
+
+func TestEncoderIndent(t *testing.T) {
+	var buf bytes.Buffer
+	enc := NewEncoder(&buf)
+	for _, v := range streamTest {
+		if err := enc.EncodeIndent(v, " ", "   "); err != nil {
+			t.Fatalf("encode indent: %v", err)
+		}
+	}
+	if have, want := buf.String(), streamEncodedIndent; have != want {
+		t.Errorf("encoding indented items: mismatch")
+		diff(t, []byte(have), []byte(want))
 	}
 }
 
